@@ -1,9 +1,11 @@
+"use strict";
 import express from 'express';
 import fs from 'fs/promises';
-import { getGamesArray } from './helpers.js';
-// test comit
+import { getGamesArray, validateGame } from './helpers.js';
+
 const app = express()
-const port = process.env.PORT || 3000
+// const port = process.env.PORT || 3000 // TODO add env variables
+const port = 3000
 
 // Middleware to parse JSON request body
 app.use(express.json())
@@ -21,19 +23,20 @@ app.get('/games', async (req, res) => {
 app.post('/games', async (req, res) => {
   try {
     const newGame = req.body;
-    const games = await getGamesArray();
+    const initialGames = await getGamesArray();
+    const gameValidation = validateGame(newGame);
 
-    // Validate the new game object. Use model.js to ensure proper values.
-    // if (!newGame.name || !newGame.genre || !newGame.releaseYear) {
-    //   return res.status(400).send({ error: 'Invalid game data' });
-    // }
+    if (!gameValidation.isValid) {
+      return res.status(400).send({ error: gameValidation.error });
+    }
 
-    games.push(newGame);
-    await fs.writeFile('./data/games.json', JSON.stringify(games), 'utf-8');
-    res.status(201).send(games);
+    const updatedGames = [...initialGames, newGame];
+
+    await fs.writeFile('./data/games.json', JSON.stringify(updatedGames), 'utf-8');
+    res.status(201).send(updatedGames);
   } catch (error) {
     console.error(error);
-    res.status(500).send({ error: 'Failed to save the game' });
+    res.status(500).send({ error: `Failed to save the game due to ${error}` });
   }
 });
 

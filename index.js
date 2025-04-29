@@ -1,20 +1,9 @@
-const express = require('express')
-const fs = require('node:fs/promises');
-const { games } = require('./data/games.json')
+import express from 'express';
+import fs from 'fs/promises';
+import { getGamesArray } from './helpers.js';
+
 const app = express()
 const port = process.env.PORT || 3000
-const gamesFilePath = './data/games.json';
-
-async function getGamesArray() {
-  try {
-    const data = await fs.readFile(gamesFilePath, 'utf-8');
-    const games = JSON.parse(data);
-    return games;
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
-}
 
 // Middleware to parse JSON request body
 app.use(express.json())

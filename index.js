@@ -2,6 +2,7 @@
 import express from 'express';
 import fs from 'fs/promises';
 import { getGamesArray, validateGame } from './helpers.js';
+import cors from 'cors';
 
 const app = express()
 // const port = process.env.PORT || 3000 // TODO add env variables
@@ -9,6 +10,8 @@ const port = 3000
 
 // Middleware to parse JSON request body
 app.use(express.json())
+// Middleware to enable CORS
+app.use(cors())
 
 app.get('/games', async (req, res) => {
   try {

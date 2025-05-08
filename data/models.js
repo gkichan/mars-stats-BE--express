@@ -1,3 +1,5 @@
+'use strict';
+
 export const PlayerName = {
   Eugene: 'Женя',
   Karina: 'Каріна',

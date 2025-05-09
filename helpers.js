@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 import fs from 'fs/promises';
 import { PlayerName, Corporation } from './data/models.js';
 
@@ -12,23 +12,26 @@ export async function getGamesArray() {
   } catch (error) {
     console.error(error);
     return []; // TODO its not OK to return an empty array here, we should handle the error properly
-  } 
+  }
 }
 
 const gameValidationErrors = {
   arrayEmpty: 'Game array is empty or not an array',
-  incorrectStructure: (player) => `Player entry ${JSON.stringify(player)} has incorrect structure`,
-  incorrectValueType: (player) => `Player entry ${JSON.stringify(player)} has incorrect value type`,
+  incorrectStructure: (player) =>
+    `Player entry ${JSON.stringify(player)} has incorrect structure`,
+  incorrectValueType: (player) =>
+    `Player entry ${JSON.stringify(player)} has incorrect value type`,
   nameIsInvalid: (name) => `Player name ${name} is not valid`,
-  corporationIsInvalid: (corporation) => `Corporation ${corporation} is not valid`,
+  corporationIsInvalid: (corporation) =>
+    `Corporation ${corporation} is not valid`, // TODO handle empty string separately to avoid 'Corporation  is not valid' case
   nameHasDuplicates: 'Game contains player name duplicates',
-}
+};
 
 export function validateGame(game) {
   if (isArrayEmpty(game)) {
     return {
       isValid: false,
-      error: gameValidationErrors.arrayEmpty
+      error: gameValidationErrors.arrayEmpty,
     };
   }
 
@@ -36,7 +39,7 @@ export function validateGame(game) {
     if (isInvalidPlayerEntryStructure(player)) {
       return {
         isValid: false,
-        error: gameValidationErrors.incorrectStructure(player)
+        error: gameValidationErrors.incorrectStructure(player),
       };
     }
   }
@@ -45,16 +48,16 @@ export function validateGame(game) {
     if (isInvalidPlayerEntryValueType(player)) {
       return {
         isValid: false,
-        error: gameValidationErrors.incorrectValueType(player)
+        error: gameValidationErrors.incorrectValueType(player),
       };
     }
   }
-  
+
   for (const player of game) {
     if (isInvalidPlayerName(player.name)) {
       return {
         isValid: false,
-        error: gameValidationErrors.nameIsInvalid(player.name)
+        error: gameValidationErrors.nameIsInvalid(player.name),
       };
     }
   }
@@ -63,7 +66,7 @@ export function validateGame(game) {
     if (isInvalidCorporation(player.corporation)) {
       return {
         isValid: false,
-        error: gameValidationErrors.corporationIsInvalid(player.corporation)
+        error: gameValidationErrors.corporationIsInvalid(player.corporation),
       };
     }
   }
@@ -71,14 +74,14 @@ export function validateGame(game) {
   if (nameHasDuplicates(game)) {
     return {
       isValid: false,
-      error: gameValidationErrors.nameHasDuplicates
+      error: gameValidationErrors.nameHasDuplicates,
     };
   }
 
   return {
     isValid: true,
-    error: null
-  }
+    error: null,
+  };
 }
 
 // Validator should return 'true' if validation fails. It means validation rule is not met.
@@ -88,7 +91,6 @@ function isArrayEmpty(array) {
 }
 
 function isInvalidPlayerEntryStructure(player) {
-  
   return !(
     Object.hasOwn(player, 'name') &&
     Object.hasOwn(player, 'corporation') &&
@@ -114,7 +116,7 @@ function isInvalidCorporation(corporation) {
 }
 
 function nameHasDuplicates(game) {
-  const names = game.map(player => player.name);
+  const names = game.map((player) => player.name);
   const uniqueNames = new Set(names);
   return names.length > uniqueNames.size;
 }

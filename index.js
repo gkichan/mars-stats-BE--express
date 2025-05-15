@@ -1,17 +1,21 @@
-"use strict";
+'use strict';
+import 'dotenv/config';
 import express from 'express';
 import fs from 'fs/promises';
 import { getGamesArray, validateGame } from './helpers.js';
 import cors from 'cors';
 
-const app = express()
+import { ExpressAuth } from '@auth/express';
+import GitHub from '@auth/express/providers/github';
+
+const app = express();
 // const port = process.env.PORT || 3000 // TODO add env variables
-const port = 3000
+const port = 3000;
 
 // Middleware to parse JSON request body
-app.use(express.json())
+app.use(express.json());
 // Middleware to enable CORS
-app.use(cors())
+app.use(cors());
 
 app.get('/games', async (req, res) => {
   try {
@@ -35,7 +39,11 @@ app.post('/games', async (req, res) => {
 
     const updatedGames = [...initialGames, newGame];
 
-    await fs.writeFile('./data/games.json', JSON.stringify(updatedGames), 'utf-8');
+    await fs.writeFile(
+      './data/games.json',
+      JSON.stringify(updatedGames),
+      'utf-8'
+    );
     res.status(201).send(updatedGames);
   } catch (error) {
     console.error(error);
@@ -43,6 +51,16 @@ app.post('/games', async (req, res) => {
   }
 });
 
+app.set('trust proxy', true);
+app.use('/auth', ExpressAuth({ providers: [GitHub] }));
+
+app.use('/auth/callback', (req, res) => {
+  const { provider, user } = req.auth;
+  console.log(req);
+  console.log('User authenticated:', user);
+  res.send(`Hello ${user.name}, you are authenticated with ${provider}`);
+});
+
 app.listen(port, () => {
-  console.log(`App listening on port ${port}`)
-})
+  console.log(`App listening on port ${port}`);
+});

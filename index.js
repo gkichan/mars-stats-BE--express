@@ -60,6 +60,7 @@ app.use(
       GitHub({
         clientId: process.env.GITHUB_CLIENT_ID,
         clientSecret: process.env.GITHUB_CLIENT_SECRET,
+        callbackUrl: 'https://mars-stats-be-express.onrender.com/auth/callback',
       }),
     ],
     secret: process.env.AUTH_SECRET,

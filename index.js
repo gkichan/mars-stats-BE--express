@@ -1,3 +1,4 @@
+/* eslint-disable no-undef */
 'use strict';
 import 'dotenv/config';
 import express from 'express';
@@ -52,7 +53,18 @@ app.post('/games', async (req, res) => {
 });
 
 app.set('trust proxy', true);
-app.use('/auth', ExpressAuth({ providers: [GitHub] }));
+app.use(
+  '/auth',
+  ExpressAuth({
+    providers: [
+      GitHub({
+        clientId: process.env.GITHUB_CLIENT_ID,
+        clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      }),
+    ],
+    secret: process.env.AUTH_SECRET,
+  })
+);
 
 app.use('/auth/callback', (req, res) => {
   const { provider, user } = req.auth;

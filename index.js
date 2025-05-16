@@ -11,8 +11,7 @@ import GitHub from '@auth/express/providers/github';
 import { getGamesArray, validateGame } from './helpers.js';
 
 const app = express();
-// const port = process.env.PORT || 3000 // TODO add env variables
-const port = 3000;
+const port = process.env.PORT || 3000;
 
 // Middleware to parse JSON request body
 app.use(express.json());
@@ -24,23 +23,27 @@ const authConfig = {
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
+      authorization: { params: { scope: 'read:user user:email' } },
       profile(profile) {
         return {
-          id: profile.id,
-          name: profile.name || profile.login,
-          login: profile.login,
-          email: profile.email,
-          image: profile.avatar_url,
+          githubId: profile.id,
         };
       },
     }),
   ],
   secret: process.env.AUTH_SECRET,
   callbacks: {
-    async session({ session, user }) {
-      session.user.id = user.id;
-      session.user.login = user.login;
-      session.user.email = user.email;
+    jwt({ token, user }) {
+      if (user) {
+        token.githubId = user.githubId;
+      }
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && session.user.user) {
+        session.user = session.user.user;
+      }
+      session.user.githubId = token.githubId;
       return session;
     },
   },
@@ -59,7 +62,7 @@ app.get('/games', async (req, res) => {
 
   try {
     const games = await getGamesArray();
-    res.send({ user: session, games });
+    res.send({ user: session.user, games });
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Failed to fetch games' });

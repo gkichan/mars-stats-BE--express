@@ -3,11 +3,13 @@
 import 'dotenv/config';
 import express from 'express';
 import fs from 'fs/promises';
-import { getGamesArray, validateGame } from './helpers.js';
 import cors from 'cors';
 
-import { ExpressAuth, getServerSession } from '@auth/express';
+import { ExpressAuth } from '@auth/express';
+import { getSession } from '@auth/express';
 import GitHub from '@auth/express/providers/github';
+
+import { getGamesArray, validateGame } from './helpers.js';
 
 const app = express();
 // const port = process.env.PORT || 3000 // TODO add env variables
@@ -19,7 +21,7 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/games', async (req, res) => {
-  const session = await getServerSession(req, res);
+  const session = await getSession(req);
 
   if (!session) {
     return res.status(401).send({ error: 'Not authenticated' });

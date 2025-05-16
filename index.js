@@ -5,8 +5,7 @@ import express from 'express';
 import fs from 'fs/promises';
 import cors from 'cors';
 
-import { ExpressAuth } from '@auth/express';
-import { getSession } from '@auth/express';
+import { getSession, ExpressAuth } from '@auth/express';
 import GitHub from '@auth/express/providers/github';
 
 import { getGamesArray, validateGame } from './helpers.js';
@@ -20,8 +19,20 @@ app.use(express.json());
 // Middleware to enable CORS
 app.use(cors());
 
+const authConfig = {
+  providers: [
+    GitHub({
+      clientId: process.env.GITHUB_CLIENT_ID,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET,
+    }),
+  ],
+  secret: process.env.AUTH_SECRET,
+};
+
+app.use('/auth', ExpressAuth(authConfig));
+
 app.get('/games', async (req, res) => {
-  const session = await getSession(req);
+  const session = await getSession(req, authConfig);
 
   if (!session) {
     return res.status(401).send({ error: 'Not authenticated' });
@@ -63,18 +74,6 @@ app.post('/games', async (req, res) => {
 });
 
 app.set('trust proxy', true);
-app.use(
-  '/auth',
-  ExpressAuth({
-    providers: [
-      GitHub({
-        clientId: process.env.GITHUB_CLIENT_ID,
-        clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      }),
-    ],
-    secret: process.env.AUTH_SECRET,
-  })
-);
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);

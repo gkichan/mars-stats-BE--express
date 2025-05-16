@@ -38,11 +38,11 @@ app.get('/games', async (req, res) => {
     return res.status(401).send({ error: 'Not authenticated' });
   }
 
-  console.log('Authenticated user:', session.user);
+  console.log('Authenticated user:', session);
 
   try {
     const games = await getGamesArray();
-    res.send({ user: session.user, games });
+    res.send({ user: session, games });
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Failed to fetch games' });

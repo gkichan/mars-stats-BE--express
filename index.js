@@ -6,7 +6,7 @@ import fs from 'fs/promises';
 import { getGamesArray, validateGame } from './helpers.js';
 import cors from 'cors';
 
-import { ExpressAuth } from '@auth/express';
+import { ExpressAuth, getServerSession } from '@auth/express';
 import GitHub from '@auth/express/providers/github';
 
 const app = express();
@@ -19,9 +19,17 @@ app.use(express.json());
 app.use(cors());
 
 app.get('/games', async (req, res) => {
+  const session = await getServerSession(req, res);
+
+  if (!session) {
+    return res.status(401).send({ error: 'Not authenticated' });
+  }
+
+  console.log('Authenticated user:', session.user);
+
   try {
     const games = await getGamesArray();
-    res.send(games);
+    res.send({ user: session.user, games });
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Failed to fetch games' });
@@ -65,13 +73,6 @@ app.use(
     secret: process.env.AUTH_SECRET,
   })
 );
-
-app.use('/auth/callback/github', (req, res) => {
-  const { provider, user } = req.auth;
-  console.log(req);
-  console.log('User authenticated:', user);
-  res.send(`Hello ${user.name}, you are authenticated with ${provider}`);
-});
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);

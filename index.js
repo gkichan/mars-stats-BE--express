@@ -25,17 +25,25 @@ const authConfig = {
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
       profile(profile) {
-        console.log('profile(profile)', profile);
         return {
           id: profile.id,
           name: profile.name || profile.login,
           login: profile.login,
           email: profile.email,
+          image: profile.avatar_url,
         };
       },
     }),
   ],
   secret: process.env.AUTH_SECRET,
+  callbacks: {
+    async session({ session, user }) {
+      session.user.id = user.id;
+      session.user.login = user.login;
+      session.user.email = user.email;
+      return session;
+    },
+  },
 };
 
 app.use('/auth', ExpressAuth(authConfig));

@@ -22,6 +22,8 @@ app.use(
   })
 );
 
+app.set('trust proxy', true);
+
 const authConfig = {
   trustHost: true,
   providers: [
@@ -84,17 +86,13 @@ app.get('/games', async (req, res) => {
 });
 
 app.post('/games', async (req, res) => {
-  const session = await getSession(req, authConfig);
-
+  const session = await isAuthorized(req, authConfig);
   if (!session) {
-    return res.status(401).send({ error: 'Not authenticated' });
-  }
-
-  if (session.user.githubId !== Number(process.env.MY_GITHUB_ID)) {
-    return res.status(403).send({ error: 'Forbidden' });
+    return res.status(403).send('Forbidden');
   }
 
   try {
+    // TODO move it to getGamesArray ?
     try {
       await fs.access(gamesFilePath);
     } catch {
@@ -119,11 +117,52 @@ app.post('/games', async (req, res) => {
   }
 });
 
-app.set('trust proxy', true);
-
 app.get('/is-authenticated', async (req, res) => {
   const session = await getSession(req, authConfig);
   res.send({ authenticated: !!session });
+});
+
+function isAuthorized(req, authConfig) {
+  return getSession(req, authConfig).then((session) => {
+    if (
+      // TODO is it ok to mix 401 and 403 logic?
+      !session ||
+      session.user.githubId !== Number(process.env.MY_GITHUB_ID)
+    ) {
+      return null;
+    }
+    return session;
+  });
+}
+
+// Download data
+app.get('/admin/download-data', async (req, res) => {
+  const session = await isAuthorized(req, authConfig);
+  if (!session) {
+    return res.status(403).send('Forbidden');
+  }
+  try {
+    // TODO use getGamesArray() helper insstead of reading the file directly OR keep it to provide 404 case - rethink it
+    const data = await fs.readFile(gamesFilePath, 'utf-8');
+    res.setHeader('Content-Type', 'application/json');
+    res.send(data);
+  } catch {
+    res.status(404).send({ error: 'File not found' });
+  }
+});
+
+// Upload data
+app.post('/admin/upload-data', async (req, res) => {
+  const session = await isAuthorized(req, authConfig);
+  if (!session) {
+    return res.status(403).send('Forbidden');
+  }
+  try {
+    await fs.writeFile(gamesFilePath, JSON.stringify(req.body), 'utf-8');
+    res.send({ success: true });
+  } catch (error) {
+    res.status(500).send({ error: `Failed to upload data: ${error}` });
+  }
 });
 
 app.listen(port, () => {

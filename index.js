@@ -16,14 +16,20 @@ const port = process.env.PORT || 3000;
 // Middleware to parse JSON request body
 app.use(express.json());
 // Middleware to enable CORS
-app.use(cors());
+app.use(
+  cors({
+    origin: ['http://localhost:5500', 'http://127.0.0.1:5500'],
+    credentials: true,
+  })
+);
 
 const authConfig = {
+  trustHost: true,
   providers: [
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      authorization: { params: { scope: 'read:user user:email' } },
+      authorization: { params: { scope: 'read:user user:email' } }, // TODO may be removed
       profile(profile) {
         return {
           githubId: profile.id,
@@ -46,23 +52,26 @@ const authConfig = {
       session.user.githubId = token.githubId;
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      const allowed = [
+        'http://localhost:5500',
+        'https://your-frontend-domain.com',
+      ];
+      if (allowed.some((origin) => url.startsWith(origin))) {
+        return url;
+      }
+      // fallback: deny or redirect to safe default
+      return baseUrl;
+    },
   },
 };
 
 app.use('/auth', ExpressAuth(authConfig));
 
 app.get('/games', async (req, res) => {
-  const session = await getSession(req, authConfig);
-
-  if (!session) {
-    return res.status(401).send({ error: 'Not authenticated' });
-  }
-
-  console.log('Authenticated user:', session);
-
   try {
     const games = await getGamesArray();
-    res.send({ user: session.user, games });
+    res.send(games);
   } catch (error) {
     console.error(error);
     res.status(500).send({ error: 'Failed to fetch games' });
@@ -70,6 +79,16 @@ app.get('/games', async (req, res) => {
 });
 
 app.post('/games', async (req, res) => {
+  const session = await getSession(req, authConfig);
+
+  if (!session) {
+    return res.status(401).send({ error: 'Not authenticated' });
+  }
+
+  if (session.user.githubId !== Number(process.env.MY_GITHUB_ID)) {
+    return res.status(403).send({ error: 'Forbidden' });
+  }
+
   try {
     const newGame = req.body;
     const initialGames = await getGamesArray();
@@ -81,11 +100,7 @@ app.post('/games', async (req, res) => {
 
     const updatedGames = [...initialGames, newGame];
 
-    await fs.writeFile(
-      './data/games.json',
-      JSON.stringify(updatedGames),
-      'utf-8'
-    );
+    await fs.writeFile('./games.json', JSON.stringify(updatedGames), 'utf-8');
     res.status(201).send(updatedGames);
   } catch (error) {
     console.error(error);
@@ -94,6 +109,11 @@ app.post('/games', async (req, res) => {
 });
 
 app.set('trust proxy', true);
+
+app.get('/is-authenticated', async (req, res) => {
+  const session = await getSession(req, authConfig);
+  res.send({ authenticated: !!session });
+});
 
 app.listen(port, () => {
   console.log(`App listening on port ${port}`);

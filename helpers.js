@@ -1,9 +1,9 @@
 'use strict';
 import fs from 'fs/promises';
-import { PlayerName, Corporation } from './data/models.js';
+import { PlayerName, Corporation } from './models.js';
 
 export async function getGamesArray() {
-  const gamesFilePath = './data/games.json';
+  const gamesFilePath = './games.json';
 
   try {
     const data = await fs.readFile(gamesFilePath, 'utf-8');

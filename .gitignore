@@ -1,5 +1,5 @@
 node_modules
-data/games.json
+games.json
 .idea
 .env
 .vercel

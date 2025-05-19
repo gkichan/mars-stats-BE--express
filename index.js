@@ -8,7 +8,7 @@ import cors from 'cors';
 import { getSession, ExpressAuth } from '@auth/express';
 import GitHub from '@auth/express/providers/github';
 
-import { getGamesArray, validateGame } from './helpers.js';
+import { getGamesArray, validateGame, gamesFilePath } from './helpers.js';
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -90,6 +90,12 @@ app.post('/games', async (req, res) => {
   }
 
   try {
+    try {
+      await fs.access(gamesFilePath);
+    } catch {
+      await fs.writeFile(gamesFilePath, '[]', 'utf-8');
+    }
+
     const newGame = req.body;
     const initialGames = await getGamesArray();
     const gameValidation = validateGame(newGame);
@@ -100,7 +106,7 @@ app.post('/games', async (req, res) => {
 
     const updatedGames = [...initialGames, newGame];
 
-    await fs.writeFile('./games.json', JSON.stringify(updatedGames), 'utf-8');
+    await fs.writeFile(gamesFilePath, JSON.stringify(updatedGames), 'utf-8');
     res.status(201).send(updatedGames);
   } catch (error) {
     console.error(error);

@@ -52,7 +52,6 @@ const authConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      console.log('Redirect callback:', { url, baseUrl });
       if (url.startsWith(process.env.FRONTEND_URL)) {
         return url;
       }

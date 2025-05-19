@@ -28,7 +28,7 @@ const authConfig = {
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      authorization: { params: { scope: 'read:user user:email' } }, // TODO may be removed
+      authorization: { params: { scope: 'read:user' } },
       profile(profile) {
         return {
           githubId: profile.id,
@@ -52,11 +52,7 @@ const authConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
-      const allowed = [
-        'http://localhost:5500',
-        'https://your-frontend-domain.com',
-      ];
-      if (allowed.some((origin) => url.startsWith(origin))) {
+      if (url.startsWith(process.env.FRONTEND_URL)) {
         return url;
       }
       // fallback: deny or redirect to safe default

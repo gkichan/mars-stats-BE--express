@@ -52,10 +52,10 @@ const authConfig = {
       return session;
     },
     async redirect({ url, baseUrl }) {
+      console.log('Redirect callback:', { url, baseUrl });
       if (url.startsWith(process.env.FRONTEND_URL)) {
         return url;
       }
-      // fallback: deny or redirect to safe default
       return baseUrl;
     },
   },

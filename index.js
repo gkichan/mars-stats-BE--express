@@ -59,6 +59,17 @@ const authConfig = {
       return baseUrl;
     },
   },
+  cookies: {
+    sessionToken: {
+      name: `__Secure-authjs.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'none',
+        path: '/',
+        secure: true,
+      },
+    },
+  },
 };
 
 app.use('/auth', ExpressAuth(authConfig));

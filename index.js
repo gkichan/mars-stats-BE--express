@@ -92,7 +92,7 @@ app.post('/games', async (req, res) => {
   }
 
   try {
-    // TODO move it to getGamesArray ?
+    // TODO move it to getGamesArray
     try {
       await fs.access(gamesFilePath);
     } catch {
@@ -125,7 +125,7 @@ app.get('/is-authenticated', async (req, res) => {
 function isAuthorized(req, authConfig) {
   return getSession(req, authConfig).then((session) => {
     if (
-      // TODO is it ok to mix 401 and 403 logic?
+      // TODO would be nice to return object with error (403 if session but different ID or 401 if no session)
       !session ||
       session.user.githubId !== Number(process.env.MY_GITHUB_ID)
     ) {
@@ -135,14 +135,13 @@ function isAuthorized(req, authConfig) {
   });
 }
 
-// Download data
 app.get('/admin/download-data', async (req, res) => {
   const session = await isAuthorized(req, authConfig);
   if (!session) {
     return res.status(403).send('Forbidden');
   }
   try {
-    // TODO use getGamesArray() helper insstead of reading the file directly OR keep it to provide 404 case - rethink it
+    // TODO use getGamesArray() helper instead of reading the file directly BUT need to provide 404 case instead of empty array if error
     const data = await fs.readFile(gamesFilePath, 'utf-8');
     res.setHeader('Content-Type', 'application/json');
     res.send(data);
@@ -151,7 +150,6 @@ app.get('/admin/download-data', async (req, res) => {
   }
 });
 
-// Upload data
 app.post('/admin/upload-data', async (req, res) => {
   const session = await isAuthorized(req, authConfig);
   if (!session) {

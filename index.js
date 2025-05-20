@@ -90,7 +90,7 @@ app.get('/games', async (req, res) => {
   try {
     const db = await connectToMongo();
     const games = await db.collection('games').find().toArray();
-    res.send(games);
+    res.send(games.map((doc) => doc.players));
   } catch (error) {
     console.log(error);
     res.status(500).send({ error: 'Failed to fetch games' });
@@ -102,13 +102,25 @@ app.post('/games', async (req, res) => {
   if (!session) return res.status(403).send('Forbidden');
 
   try {
-    const newGame = req.body;
-    const gameValidation = validateGame(newGame);
-    if (!gameValidation.isValid) {
-      return res.status(400).send({ error: gameValidation.error });
-    }
     const db = await connectToMongo();
-    await db.collection('games').insertOne(newGame);
+
+    // req.body should be an array of players (one game)
+    if (!Array.isArray(req.body)) {
+      return res
+        .status(400)
+        .send({ error: 'Expected an array of players for a single game.' });
+    }
+
+    // Validate each player
+    for (const player of req.body) {
+      const gameValidation = validateGame(player);
+      if (!gameValidation.isValid) {
+        return res.status(400).send({ error: gameValidation.error });
+      }
+    }
+
+    // Insert as a single document
+    await db.collection('games').insertOne({ players: req.body });
     const games = await db.collection('games').find().toArray();
     res.status(201).send(games);
   } catch (error) {
@@ -152,8 +164,29 @@ app.post('/admin/upload-data', async (req, res) => {
   if (!session) return res.status(403).send('Forbidden');
   try {
     const db = await connectToMongo();
+
+    // req.body should be an array of arrays (list of games)
+    if (!Array.isArray(req.body) || !Array.isArray(req.body[0])) {
+      return res.status(400).send({
+        error: 'Expected an array of games (each game is an array of players).',
+      });
+    }
+
+    // Validate each player in each game
+    for (const game of req.body) {
+      for (const player of game) {
+        const gameValidation = validateGame(player);
+        if (!gameValidation.isValid) {
+          return res.status(400).send({ error: gameValidation.error });
+        }
+      }
+    }
+
     await db.collection('games').deleteMany({});
-    await db.collection('games').insertMany(req.body);
+    // Insert each game as a document
+    await db
+      .collection('games')
+      .insertMany(req.body.map((game) => ({ players: game })));
     res.send({ success: true });
   } catch (error) {
     res.status(500).send({ error: `Failed to upload data: ${error}` });

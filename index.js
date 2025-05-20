@@ -2,13 +2,24 @@
 'use strict';
 import 'dotenv/config';
 import express from 'express';
-import fs from 'fs/promises';
 import cors from 'cors';
+import { MongoClient } from 'mongodb';
 
 import { getSession, ExpressAuth } from '@auth/express';
 import GitHub from '@auth/express/providers/github';
 
-import { getGamesArray, validateGame, gamesFilePath } from './helpers.js';
+import { validateGame } from './helpers.js';
+
+const client = new MongoClient(process.env.MONGODB_URI);
+let db;
+
+async function connectToMongo() {
+  if (!db) {
+    await client.connect();
+    db = client.db(process.env.MONGODB_DB);
+  }
+  return db;
+}
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -77,42 +88,30 @@ app.use('/auth', ExpressAuth(authConfig));
 
 app.get('/games', async (req, res) => {
   try {
-    const games = await getGamesArray();
+    const db = await connectToMongo();
+    const games = await db.collection('games').find().toArray();
     res.send(games);
   } catch (error) {
-    console.error(error);
+    console.log(error);
     res.status(500).send({ error: 'Failed to fetch games' });
   }
 });
 
 app.post('/games', async (req, res) => {
   const session = await isAuthorized(req, authConfig);
-  if (!session) {
-    return res.status(403).send('Forbidden');
-  }
+  if (!session) return res.status(403).send('Forbidden');
 
   try {
-    // TODO move it to getGamesArray
-    try {
-      await fs.access(gamesFilePath);
-    } catch {
-      await fs.writeFile(gamesFilePath, '[]', 'utf-8');
-    }
-
     const newGame = req.body;
-    const initialGames = await getGamesArray();
     const gameValidation = validateGame(newGame);
-
     if (!gameValidation.isValid) {
       return res.status(400).send({ error: gameValidation.error });
     }
-
-    const updatedGames = [...initialGames, newGame];
-
-    await fs.writeFile(gamesFilePath, JSON.stringify(updatedGames), 'utf-8');
-    res.status(201).send(updatedGames);
+    const db = await connectToMongo();
+    await db.collection('games').insertOne(newGame);
+    const games = await db.collection('games').find().toArray();
+    res.status(201).send(games);
   } catch (error) {
-    console.error(error);
     res.status(500).send({ error: `Failed to save the game due to ${error}` });
   }
 });
@@ -137,26 +136,24 @@ function isAuthorized(req, authConfig) {
 
 app.get('/admin/download-data', async (req, res) => {
   const session = await isAuthorized(req, authConfig);
-  if (!session) {
-    return res.status(403).send('Forbidden');
-  }
+  if (!session) return res.status(403).send('Forbidden');
   try {
-    // TODO use getGamesArray() helper instead of reading the file directly BUT need to provide 404 case instead of empty array if error
-    const data = await fs.readFile(gamesFilePath, 'utf-8');
+    const db = await connectToMongo();
+    const games = await db.collection('games').find().toArray();
     res.setHeader('Content-Type', 'application/json');
-    res.send(data);
+    res.send(JSON.stringify(games));
   } catch {
-    res.status(404).send({ error: 'File not found' });
+    res.status(404).send({ error: 'Data not found' });
   }
 });
 
 app.post('/admin/upload-data', async (req, res) => {
   const session = await isAuthorized(req, authConfig);
-  if (!session) {
-    return res.status(403).send('Forbidden');
-  }
+  if (!session) return res.status(403).send('Forbidden');
   try {
-    await fs.writeFile(gamesFilePath, JSON.stringify(req.body), 'utf-8');
+    const db = await connectToMongo();
+    await db.collection('games').deleteMany({});
+    await db.collection('games').insertMany(req.body);
     res.send({ success: true });
   } catch (error) {
     res.status(500).send({ error: `Failed to upload data: ${error}` });

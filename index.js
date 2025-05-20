@@ -90,7 +90,7 @@ app.get('/games', async (req, res) => {
   try {
     const db = await connectToMongo();
     const games = await db.collection('games').find().toArray();
-    res.send(games.map((doc) => doc.game));
+    res.send(mongodbResponseMapper(games));
   } catch (error) {
     console.log(error);
     res.status(500).send({ error: 'Failed to fetch games' });
@@ -110,8 +110,10 @@ app.post('/games', async (req, res) => {
     }
 
     // Insert as a single document
-    await db.collection('games').insertOne({ players: req.body });
+    await db.collection('games').insertOne({ games: req.body });
     const games = await db.collection('games').find().toArray();
+    console.log('games', games);
+    console.log('mongodbResponseMapper(games)', mongodbResponseMapper(games));
     res.status(201).send(mongodbResponseMapper(games));
   } catch (error) {
     res.status(500).send({ error: `Failed to save the game due to ${error}` });

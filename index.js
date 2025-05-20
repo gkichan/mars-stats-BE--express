@@ -110,7 +110,7 @@ app.post('/games', async (req, res) => {
     }
 
     // Insert as a single document
-    await db.collection('games').insertOne({ games: req.body });
+    await db.collection('games').insertOne({ game: req.body });
     const games = await db.collection('games').find().toArray();
     console.log('games', games);
     console.log('mongodbResponseMapper(games)', mongodbResponseMapper(games));

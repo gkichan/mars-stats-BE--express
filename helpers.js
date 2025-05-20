@@ -71,7 +71,7 @@ export function validateGame(game) {
 }
 
 export function mongodbResponseMapper(mongoResponse) {
-  mongoResponse.map(({ game }) => game);
+  return mongoResponse.map(({ game }) => game);
 }
 
 // Validator should return 'true' if validation fails. It means validation rule is not met.

@@ -8,7 +8,7 @@ import { MongoClient } from 'mongodb';
 import { getSession, ExpressAuth } from '@auth/express';
 import GitHub from '@auth/express/providers/github';
 
-import { validateGame } from './helpers.js';
+import { validateGame, mongodbResponseMapper } from './helpers.js';
 
 const client = new MongoClient(process.env.MONGODB_URI);
 let db;
@@ -90,7 +90,7 @@ app.get('/games', async (req, res) => {
   try {
     const db = await connectToMongo();
     const games = await db.collection('games').find().toArray();
-    res.send(games.map((doc) => doc.players));
+    res.send(games.map((doc) => doc.game));
   } catch (error) {
     console.log(error);
     res.status(500).send({ error: 'Failed to fetch games' });
@@ -112,7 +112,7 @@ app.post('/games', async (req, res) => {
     // Insert as a single document
     await db.collection('games').insertOne({ players: req.body });
     const games = await db.collection('games').find().toArray();
-    res.status(201).send(games);
+    res.status(201).send(mongodbResponseMapper(games));
   } catch (error) {
     res.status(500).send({ error: `Failed to save the game due to ${error}` });
   }
@@ -155,28 +155,11 @@ app.post('/admin/upload-data', async (req, res) => {
   try {
     const db = await connectToMongo();
 
-    // req.body should be an array of arrays (list of games)
-    if (!Array.isArray(req.body) || !Array.isArray(req.body[0])) {
-      return res.status(400).send({
-        error: 'Expected an array of games (each game is an array of players).',
-      });
-    }
-
-    // Validate each player in each game
-    for (const game of req.body) {
-      for (const player of game) {
-        const gameValidation = validateGame(player);
-        if (!gameValidation.isValid) {
-          return res.status(400).send({ error: gameValidation.error });
-        }
-      }
-    }
-
     await db.collection('games').deleteMany({});
     // Insert each game as a document
     await db
       .collection('games')
-      .insertMany(req.body.map((game) => ({ players: game })));
+      .insertMany(req.body.map((game) => ({ game: game })));
     res.send({ success: true });
   } catch (error) {
     res.status(500).send({ error: `Failed to upload data: ${error}` });

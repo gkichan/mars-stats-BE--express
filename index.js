@@ -103,20 +103,10 @@ app.post('/games', async (req, res) => {
 
   try {
     const db = await connectToMongo();
+    const gameValidation = validateGame(req.body);
 
-    // req.body should be an array of players (one game)
-    if (!Array.isArray(req.body)) {
-      return res
-        .status(400)
-        .send({ error: 'Expected an array of players for a single game.' });
-    }
-
-    // Validate each player
-    for (const player of req.body) {
-      const gameValidation = validateGame(player);
-      if (!gameValidation.isValid) {
-        return res.status(400).send({ error: gameValidation.error });
-      }
+    if (!gameValidation.isValid) {
+      return res.status(400).send({ error: gameValidation.error });
     }
 
     // Insert as a single document

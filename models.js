@@ -33,7 +33,9 @@ export const Corporation = {
   Astrodrill: 'Astrodrill',
   PharmacyUnion: 'Pharmacy Union',
   Vitor: 'Vitor',
-  CheungShingMars: 'Cheung Shing Mars'
+  CheungShingMars: 'Cheung Shing',
+  ValleyTrust: 'Valley Trust',
+  RobinsonIndustries: 'Robinson Industries'
 };
 
 export const playersColors = {

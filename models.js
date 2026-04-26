@@ -35,7 +35,8 @@ export const Corporation = {
   Vitor: 'Vitor',
   CheungShingMars: 'Cheung Shing',
   ValleyTrust: 'Valley Trust',
-  RobinsonIndustries: 'Robinson Industries'
+  RobinsonIndustries: 'Robinson Industries',
+  PointLuna: 'Point Luna'
 };
 
 export const playersColors = {

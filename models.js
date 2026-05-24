@@ -33,7 +33,7 @@ export const Corporation = {
   Astrodrill: 'Astrodrill',
   PharmacyUnion: 'Pharmacy Union',
   Vitor: 'Vitor',
-  CheungShingMars: 'Cheung Shing',
+  CheungShingMars: 'Cheung Shing Mars',
   ValleyTrust: 'Valley Trust',
   RobinsonIndustries: 'Robinson Industries',
   PointLuna: 'Point Luna'

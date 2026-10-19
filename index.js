@@ -8,7 +8,7 @@ import basicAuth from 'express-basic-auth';
 
 import { validateGame, mongodbResponseMapper } from './helpers.js';
 
-// const client = new MongoClient(process.env.MONGODB_URI);
+const client = new MongoClient(process.env.MONGODB_URI);
 let db;
  
 async function connectToMongo() {

@@ -4,15 +4,13 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { MongoClient } from 'mongodb';
-
-import { getSession, ExpressAuth } from '@auth/express';
-import GitHub from '@auth/express/providers/github';
+import basicAuth from 'express-basic-auth';
 
 import { validateGame, mongodbResponseMapper } from './helpers.js';
 
-const client = new MongoClient(process.env.MONGODB_URI);
+// const client = new MongoClient(process.env.MONGODB_URI);
 let db;
-
+ 
 async function connectToMongo() {
   if (!db) {
     await client.connect();
@@ -33,60 +31,17 @@ app.use(
   })
 );
 
-app.set('trust proxy', true);
+const authMiddleware = basicAuth({
+  users: { 'admin': '1234' },
+  challenge: true,
+  realm: 'Test Area',
+});
 
-const authConfig = {
-  trustHost: true,
-  providers: [
-    GitHub({
-      clientId: process.env.GITHUB_CLIENT_ID,
-      clientSecret: process.env.GITHUB_CLIENT_SECRET,
-      authorization: { params: { scope: 'read:user' } },
-      profile(profile) {
-        return {
-          githubId: profile.id,
-        };
-      },
-    }),
-  ],
-  secret: process.env.AUTH_SECRET,
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.githubId = user.githubId;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user && session.user.user) {
-        session.user = session.user.user;
-      }
-      session.user.githubId = token.githubId;
-      return session;
-    },
-    async redirect({ url, baseUrl }) {
-      if (url.startsWith(process.env.FRONTEND_URL)) {
-        return url;
-      }
-      return baseUrl;
-    },
-  },
-  cookies: {
-    sessionToken: {
-      name: `__Secure-authjs.session-token`,
-      options: {
-        httpOnly: true,
-        sameSite: 'none',
-        path: '/',
-        secure: true,
-      },
-    },
-  },
-};
+app.get('/sign-in', authMiddleware, (req, res) => {
+  res.redirect(process.env.FRONTEND_URL);
+});
 
-app.use('/auth', ExpressAuth(authConfig));
-
-app.get('/games', async (req, res) => {
+app.get('/games', authMiddleware, async (req, res) => {
   try {
     const db = await connectToMongo();
     const games = await db.collection('games').find().toArray();
@@ -97,10 +52,7 @@ app.get('/games', async (req, res) => {
   }
 });
 
-app.post('/games', async (req, res) => {
-  const session = await isAuthorized(req, authConfig);
-  if (!session) return res.status(403).send('Forbidden');
-
+app.post('/games', authMiddleware, async (req, res) => {
   try {
     const db = await connectToMongo();
     const gameValidation = validateGame(req.body);
@@ -118,27 +70,12 @@ app.post('/games', async (req, res) => {
   }
 });
 
-app.get('/is-authenticated', async (req, res) => {
-  const session = await getSession(req, authConfig);
-  res.send({ authenticated: !!session });
-});
+// app.get('/is-authenticated', async (req, res) => {
+//   const session = await getSession(req, authConfig);
+//   res.send({ authenticated: !!session });
+// });
 
-function isAuthorized(req, authConfig) {
-  return getSession(req, authConfig).then((session) => {
-    if (
-      // TODO would be nice to return object with error (403 if session but different ID or 401 if no session)
-      !session ||
-      session.user.githubId !== Number(process.env.MY_GITHUB_ID)
-    ) {
-      return null;
-    }
-    return session;
-  });
-}
-
-app.get('/admin/download-data', async (req, res) => {
-  const session = await isAuthorized(req, authConfig);
-  if (!session) return res.status(403).send('Forbidden');
+app.get('/admin/download-data', authMiddleware, async (req, res) => {
   try {
     const db = await connectToMongo();
     const games = await db.collection('games').find().toArray();
@@ -149,9 +86,7 @@ app.get('/admin/download-data', async (req, res) => {
   }
 });
 
-app.post('/admin/upload-data', async (req, res) => {
-  const session = await isAuthorized(req, authConfig);
-  if (!session) return res.status(403).send('Forbidden');
+app.post('/admin/upload-data', authMiddleware, async (req, res) => {
   try {
     const db = await connectToMongo();
 

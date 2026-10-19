@@ -41,7 +41,7 @@ app.get('/sign-in', authMiddleware, (req, res) => {
   res.redirect(process.env.FULL_FRONTEND_URL);
 });
 
-app.get('/games', authMiddleware, async (req, res) => {
+app.get('/games', async (req, res) => {
   try {
     const db = await connectToMongo();
     const games = await db.collection('games').find().toArray();

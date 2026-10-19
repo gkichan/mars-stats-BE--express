@@ -32,13 +32,13 @@ app.use(
 );
 
 const authMiddleware = basicAuth({
-  users: { 'admin': '1234' },
+  users: { [process.env.AUTH_LOGIN]: process.env.AUTH_PASSWORD },
   challenge: true,
   realm: 'Test Area',
 });
 
 app.get('/sign-in', authMiddleware, (req, res) => {
-  res.redirect(process.env.FRONTEND_URL);
+  res.redirect(process.env.FULL_FRONTEND_URL);
 });
 
 app.get('/games', authMiddleware, async (req, res) => {

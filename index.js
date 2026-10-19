@@ -36,6 +36,7 @@ app.use(
 app.set('trust proxy', true);
 
 const authConfig = {
+  baseURL: process.env.NEXTAUTH_URL,
   trustHost: true,
   providers: [
     GitHub({
